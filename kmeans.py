@@ -1,43 +1,36 @@
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.compose import ColumnTransformer
 from sklearn.cluster import KMeans
 import utils
+
 
 sp = utils.set_sp_credentials()
 playlist_df = utils.get_playlist_tracks(sp)
 
-# Scaling
-for col in ['loudness', 'tempo', 'duration_ms']:
-    features_df[col] = ((features_fdf[col] - features_df[col].min()) / (features_df[col].max() - features_df[col].min()))
+scale_minmax = Pipeline(steps=[
+    ('scaling', MinMaxScaler())
+    ])
 
-# Determining the cluster size
-score_list = []
-for i in range(2,10):
-    kmeans_model = KMeans(n_clusters=i, random_state=3).fit(features_df)
-    preds = kmeans_model.predict(features_df)
-    score_list.append(kmeans_model.inertia_)
+# Compondo os pré-processadores
+preprocessor = ColumnTransformer(transformers=[
+    ('scale', scale_minmax, ['loudness', 'tempo', 'duration_ms'])
+    ])
 
-# Visualization of different cluster size performations
-pd.DataFrame(score_list, index=range(2, 10)).plot(legend=False).set(xlabel="Cluster Size", ylabel="Inertia")
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('kmeans', KMeans(n_clusters=7, random_state=42))
+])
+
+
+df_train = playlist_df.drop(columns=['music', 'artist', 'artist_url', 'music_url', 'playlist_id'])
+Kmeans = model.fit(df_train)
 
 # Training and Predicting
-kmeans_model = KMeans(n_clusters=7, random_state=3).fit(features_df)
-preds = kmeans_model.predict(features_df)
-
-
-
-
-
-
-
-# Concatenating multiple artist names
-artist_list = []
-for group in artists:
-    artist_group = []
-    for person in group:
-        artist_group.append(person['name'])
-    artist_list.append(', '.join(artist_group))
+preds = Kmeans.predict(df_train)
 
 # Adding predictions to dataframe
-features_df['cluster'] = preds
+playlist_df['cluster'] = preds
 
 # Grouping clusters to see the averages
-clusters = features_df.groupby('cluster').agg('mean')
+clusters = playlist_df.groupby('cluster').agg('mean')
