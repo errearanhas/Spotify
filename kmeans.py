@@ -5,32 +5,43 @@ from sklearn.cluster import KMeans
 import utils
 
 
-sp = utils.set_sp_credentials()
-playlist_df = utils.get_playlist_tracks(sp)
+def pre_process():
+    scale_minmax = Pipeline(steps=[
+        ('scaling', MinMaxScaler())
+        ])
 
-scale_minmax = Pipeline(steps=[
-    ('scaling', MinMaxScaler())
+    preproc = ColumnTransformer(transformers=[
+        ('scale', scale_minmax, ['loudness', 'tempo', 'duration_ms'])
+        ])
+    return preproc
+
+
+def train_model(preproc):
+    model = Pipeline(steps=[
+        ('preprocessor', preproc),
+        ('kmeans', KMeans(n_clusters=7, random_state=42))
     ])
 
-# Compondo os pré-processadores
-preprocessor = ColumnTransformer(transformers=[
-    ('scale', scale_minmax, ['loudness', 'tempo', 'duration_ms'])
-    ])
-
-model = Pipeline(steps=[
-    ('preprocessor', preprocessor),
-    ('kmeans', KMeans(n_clusters=7, random_state=42))
-])
+    kmeans = model.fit(df_train)
+    preds = kmeans.predict(df_train)
+    playlist_df['cluster'] = preds
+    return playlist_df
 
 
-df_train = playlist_df.drop(columns=['music', 'artist', 'artist_url', 'music_url', 'playlist_id'])
-Kmeans = model.fit(df_train)
+def cluster_averages():
+    clust = playlist_df.groupby('cluster').agg('mean')
+    return clust
 
-# Training and Predicting
-preds = Kmeans.predict(df_train)
 
-# Adding predictions to dataframe
-playlist_df['cluster'] = preds
+def main():
+    preprocessor = pre_process()
+    playlist_df_out = train_model(preprocessor)
+    clusters = cluster_averages()
+    return playlist_df_out, clusters
 
-# Grouping clusters to see the averages
-clusters = playlist_df.groupby('cluster').agg('mean')
+
+if __name__ == "__main__":
+    sp = utils.set_sp_credentials()
+    playlist_df = utils.get_playlist_tracks(sp)
+    df_train = playlist_df.drop(columns=['music', 'artist', 'artist_url', 'music_url', 'playlist_id'])
+    main()
