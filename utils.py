@@ -1,17 +1,21 @@
 import spotipy
 import pandas as pd
 from spotipy.oauth2 import SpotifyClientCredentials
+import config
 
+id = config.client_id
+secret = config.client_secret
+my_playlist = config.playlist_id
 
-def set_sp_credentials(client_id='e2eebd69de414dfc8bfb2d7c92446bb2',
-                       client_secret='ce49026815484206b2f624eaabe4ae96'):
+def set_sp_credentials(client_id=id,
+                       client_secret=secret):
     # API Login
     client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
     sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)  # spotify object to access API
     return sp
 
 
-def get_playlist_tracks(sp, playlist_id='3I3OQ9GbMmPXw3EM9ZusbK'):
+def get_playlist_tracks(sp, playlist_id=my_playlist):
     tracks = sp.user_playlist_tracks(playlist_id=playlist_id)
     tracks_uri_list = [x['track']['uri'] for x in tracks['items']]
 
