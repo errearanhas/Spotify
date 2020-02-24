@@ -27,12 +27,12 @@ def get_playlist_tracks(sp, playlist_id=my_playlist):
     data = {'music': songs, 'artist': artist, 'artist_url': artist_url,
             'music_url': music_url, 'playlist_id': playlist_id}
 
-    # Getting features of tracks
+    # Getting track features
     features = []
     for i in tracks_uri_list:
         features += sp.audio_features(i)
 
-    # Creating feature dataframe
+    # Creating playlist dataframe
     cols_to_drop = ['id', 'analysis_url', 'key', 'time_signature', 'track_href', 'type', 'uri', 'mode']
 
     feat = pd.DataFrame(features).drop(cols_to_drop, axis=1)
