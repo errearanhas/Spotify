@@ -7,6 +7,7 @@ import config
 cli_id = config.client_id
 secret = config.client_secret
 my_playlist = config.playlist_id
+usr = config.user
 
 
 def set_sp_credentials(client_id=cli_id,
@@ -42,3 +43,20 @@ def get_playlist_tracks(sp, playlist_id=my_playlist):
 
     playlist_df = pd.concat([feat, meta], axis=1)
     return playlist_df
+
+
+def get_user_playlists(sp, login=usr):
+    user = sp.user_playlists(login)
+
+    total = user['total']
+
+    names = [user['items'][i]['name'] for i in range(total)]
+    ids = [user['items'][i]['id'] for i in range(total)]
+    url = [user['items'][i]['external_urls']['spotify'] for i in range(total)]
+    # desc = [user['items'][i]['description'] for i in range(total)]
+    colab = [user['items'][i]['collaborative'] for i in range(total)]
+
+    d = {'id': ids, 'names': names, 'url': url, 'colab': colab}
+    user_playlist_df = pd.DataFrame(data=d)
+
+    return user_playlist_df

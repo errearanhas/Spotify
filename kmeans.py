@@ -2,6 +2,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.cluster import KMeans
+import pandas as pd
 import utils
 
 
@@ -42,6 +43,11 @@ def main():
 
 if __name__ == "__main__":
     sp = utils.set_sp_credentials()
-    playlist_df = utils.get_playlist_tracks(sp)
+    ids = utils.get_user_playlists(sp).id
+    playlist_df = pd.DataFrame()
+    for i in ids:
+        temp = utils.get_playlist_tracks(sp, i)
+        playlist_df = playlist_df.append(temp)
+    playlist_df = playlist_df.reset_index(drop=True)
     df_train = playlist_df.drop(columns=['music', 'artist', 'artist_url', 'music_url', 'playlist_id'])
     main()
