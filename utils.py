@@ -1,8 +1,11 @@
-import spotipy
 import pandas as pd
+import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.cluster import KMeans
 import config
-
 
 cli_id = config.client_id
 secret = config.client_secret
@@ -60,3 +63,51 @@ def get_user_playlists(sp, login=usr):
     user_playlist_df = pd.DataFrame(data=d)
 
     return user_playlist_df
+
+
+def pre_process():
+    """
+    function for scaling data - 'loudness', 'tempo' and 'duration_ms' - using MinMaxScaler
+    :return:
+    """
+    scale_minmax = Pipeline(steps=[
+        ('scaling', MinMaxScaler())
+    ])
+
+    preproc = ColumnTransformer(transformers=[
+        ('scale', scale_minmax, ['loudness', 'tempo', 'duration_ms'])
+    ])
+    return preproc
+
+
+def train_model(preproc, tracks_df, n_clusters=7):
+    """
+    function for training k-means clustering on pre-processed data
+    :param preproc: output of preprocessing step
+    :param tracks_df: dataframe with playlist tracks and its variables
+    :param n_clusters: number of clusters (centroids) for k-means
+    :return: playlist tracks dataframe, with a new column indicating the song cluster
+    """
+    model = Pipeline(steps=[
+        ('preprocessor', preproc),
+        ('kmeans', KMeans(n_clusters=n_clusters, random_state=42))
+    ])
+
+    # select only pertinent columns for clustering (i.e. numeric ones)
+    df_train = tracks_df.drop(columns=['music', 'artist', 'artist_url', 'music_url', 'playlist_id'])
+
+    kmeans = model.fit(df_train)
+    predictions = kmeans.predict(df_train)
+
+    tracks_df['cluster'] = predictions
+    return tracks_df
+
+
+def cluster_averages(tracks_df):
+    """
+    gets dataframe with average columns for each cluster (it helps characterizing the clusters)
+    :param tracks_df: dataframe with playlist tracks and its variables
+    :return: dataframe with cluster means
+    """
+    cluster_df = tracks_df.groupby('cluster').agg('mean')
+    return cluster_df
